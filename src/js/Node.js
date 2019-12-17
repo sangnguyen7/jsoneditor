@@ -35,7 +35,8 @@ import {
 } from './util'
 import { translate } from './i18n'
 import { DEFAULT_MODAL_ANCHOR } from './constants'
-
+const DatePicker = require('js-datepicker');
+const $ = require('jquery');
 /**
  * @constructor Node
  * Create a new Node
@@ -1757,7 +1758,83 @@ export class Node {
         }
       }
 
-      // show color picker when value is a color
+        // show password box
+        if (this.extend ==='password' && this.editable.value) {
+            if (!this.dom.password) {
+                this.dom.password = document.createElement('input');
+                this.dom.password.type = 'password';
+                this.dom.password.placeholder = 'Enter password';
+                this.dom.password.className = classNames.join(' ');
+                this.dom.tdPassword = document.createElement('td');
+                this.dom.tdPassword.className = 'jsoneditor-tree';
+                this.dom.tdPassword.appendChild(this.dom.password);
+
+                this.dom.tdValue.parentNode.insertBefore(this.dom.tdPassword, this.dom.tdValue);
+            }
+
+            this.dom.password.value = this.value;
+            this.dom.tdValue.style.visibility = 'hidden';
+            this.dom.tdValue.innerHTML = '';
+        }
+        else {
+            // cleanup checkbox when displayed
+            if (this.dom.password) {
+                this.dom.tdPassword.parentNode.removeChild(this.dom.tdPassword);
+                delete this.dom.tdPassword;
+                delete this.dom.password;
+            }
+        }
+
+
+        // show datapicker box
+        if (this.extend === 'date' && this.editable.value) {
+            if (!this.dom.datepicker) {
+                this.dom.datepicker = document.createElement('input');
+                this.dom.datepicker.type = 'text';
+                this.dom.datepicker.readOnly = true;
+                this.dom.datepicker.placeholder = 'Enter date';
+                this.dom.datepicker.className = 'datepicker';
+                $(document).ready(() => {
+                    //var datePickerInv = setInterval(() => {
+                    // try{
+                    DatePicker(this.dom.datepicker, {
+                        showAllDates: true,
+                        formatter: (input, date, instance) => {
+                            const value = date.toISOString().split('T')[0];
+                            input.value = value;
+                            this.dom.value.innerHTML = value;
+                            this._getDomValue();
+                            //this.setValue(value); // => '1/1/2099'
+                        }
+                    });
+                    //       clearInterval(datePickerInv);
+                    //    }
+                    //    catch (e) {
+                    //        console.log(e);
+                    //    }
+                    // },500);
+                });
+                this.dom.tdDate = document.createElement('td');
+                this.dom.tdDate.className = 'jsoneditor-tree';
+                this.dom.tdDate.appendChild(this.dom.datepicker);
+                this.dom.tdValue.parentNode.insertBefore(this.dom.tdDate, this.dom.tdValue);
+            }
+
+            this.dom.datepicker.value = this.value;
+            this.dom.tdValue.style.visibility = 'hidden';
+            this.dom.tdValue.innerHTML = '';
+        }
+        else {
+            // cleanup checkbox when displayed
+            if (this.dom.datepicker) {
+                this.dom.tdDate.parentNode.removeChild(this.dom.tdDate);
+                delete this.dom.tdDate;
+                delete this.dom.datepicker;
+            }
+        }
+
+
+        // show color picker when value is a color
       if (this.editable.value &&
           this.editor.options.colorPicker &&
           typeof value === 'string' &&
@@ -2284,8 +2361,13 @@ export class Node {
         : null
       if (this.schema) {
         this.enum = Node._findEnum(this.schema)
-      } else {
-        delete this.enum
+          if (this.schema.extend){
+              this.extend = this.schema.extend
+          }
+      }
+      else {
+          delete this.enum
+          delete this.extend
       }
     }
   }
@@ -2492,6 +2574,20 @@ export class Node {
       this._getDomValue()
       this._updateDomValue()
     }
+
+      //update the values of the password node
+      if (type == 'change' && target == dom.password){
+          this.dom.value.innerHTML = dom.password.value
+          this._getDomValue()
+          this._updateDomValue()
+      }
+
+      //update the values of the date node
+      if (type == 'change' && target == dom.date){
+          this.dom.value.innerHTML = dom.date.value
+          this._getDomValue()
+          this._updateDomValue()
+      }
 
     // value events
     const domValue = dom.value
@@ -3000,6 +3096,18 @@ export class Node {
       this.collapse(recurse)
     } else {
       this.expand(recurse)
+        if (this.dom.datepicker) {
+            DatePicker(this.dom.datepicker, {
+                showAllDates: true,
+                formatter: (input, date, instance) => {
+                    const value = date.toISOString().split('T')[0]
+                    input.value = value
+                    this.dom.value.innerHTML = value
+                    this._getDomValue()
+                    //this.setValue(value); // => '1/1/2099';
+                }
+            })
+        }
     }
 
     if (recurse) {
@@ -4391,7 +4499,7 @@ Node._findSchema = (schema, schemaRefs, path) => {
         }
       } else if (typeof key === 'string' && childSchema.properties) {
         if (!(key in childSchema.properties)) {
-          foundSchema = null
+          foundSchema = key.length > 0 ? childSchema.default: null
         } else {
           childSchema = childSchema.properties[key]
           if (childSchema) {

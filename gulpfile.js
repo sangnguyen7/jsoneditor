@@ -149,7 +149,6 @@ gulp.task('bundle', function (done) {
     if (err) {
       log(err)
     }
-
     log('bundled ' + NAME + '.js')
 
     done()
@@ -185,7 +184,8 @@ gulp.task('bundle-css', function (done) {
       'src/scss/treepath.scss',
       'src/scss/statusbar.scss',
       'src/scss/navigationbar.scss',
-      'src/js/assets/selectr/selectr.scss'
+      'src/js/assets/selectr/selectr.scss',
+        'node_modules/js-datepicker/dist/datepicker.min.css'
     ])
     .pipe(
       sass({
